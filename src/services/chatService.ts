@@ -1,9 +1,5 @@
 import { config } from '../utils/config.js';
-import type {
-  ChatMessage,
-  ChatCompletionRequest,
-  ChatCompletionResponse,
-} from '../types/chat.js';
+import type { ChatMessage, ChatCompletionRequest, ChatCompletionResponse } from '../types/chat.js';
 
 export class ChatService {
   private readonly endpointUrl: string;
@@ -20,7 +16,7 @@ export class ChatService {
     this.temperature = config.chat.temperature;
     this.maxTokens = config.chat.maxTokens;
     this.systemPrompt =
-      'You are a helpful AI assistant in a Discord chat. CRITICAL: Discord messages have a strict 2000 character limit. You MUST keep your responses under 2000 characters total. Be concise, conversational, and friendly. If a response would exceed 2000 characters, summarize or break it into key points instead.';
+      'You are a helpful AI assistant in a Discord chat. Be concise, conversational, and friendly, responding in at most a couple of sentences.';
   }
 
   async sendChatRequest(messages: ChatMessage[]): Promise<string> {
@@ -54,9 +50,7 @@ export class ChatService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(
-          `Chat API error: ${response.status} ${response.statusText} - ${errorText}`
-        );
+        throw new Error(`Chat API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data = (await response.json()) as ChatCompletionResponse;
