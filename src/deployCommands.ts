@@ -24,4 +24,4 @@ async function deployCommands(): Promise<void> {
   }
 }
 
-deployCommands();
+void deployCommands();

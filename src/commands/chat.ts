@@ -30,7 +30,7 @@ export async function execute(
       autoArchiveDuration: 60, // Archive after 1 hour of inactivity
     });
 
-    console.log(`[ChatCommand] Thread created: ${thread.id}`)
+    console.log(`[ChatCommand] Thread created: ${thread.id}`);
   } catch (error) {
     console.error('[ChatCommand] Error:', error);
 

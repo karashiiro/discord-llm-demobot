@@ -78,9 +78,7 @@ export class ThreadService {
       }
     }
 
-    console.log(
-      `[ThreadService] Built history with ${conversationHistory.length} messages`
-    );
+    console.log(`[ThreadService] Built history with ${conversationHistory.length} messages`);
 
     return conversationHistory;
   }

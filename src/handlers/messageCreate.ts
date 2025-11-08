@@ -30,10 +30,7 @@ export async function handleMessageCreate(
     await thread.sendTyping();
 
     // Build conversation history
-    const conversationHistory = await threadService.buildConversationHistory(
-      thread,
-      client
-    );
+    const conversationHistory = await threadService.buildConversationHistory(thread, client);
 
     // Get AI response
     const response = await chatService.sendChatRequest(conversationHistory);
