@@ -3,10 +3,9 @@
 ## Thread Creation
 When a `/chat` command is executed:
 1. Bot creates a public thread from its reply message
-2. Thread metadata should store:
-   - Original author ID
-   - Thread creation timestamp
-   - (Optional) Conversation ID for tracking
+2. Thread name includes the user ID for easy lookup: `Chat - <userID>`
+   - This allows on-demand verification of the original author
+   - No in-memory state required
 
 ## Message Filtering
 
@@ -27,20 +26,28 @@ async function shouldProcessMessage(message: Message): Promise<boolean> {
   // Check if we're in a thread
   if (!message.channel.isThread()) return false;
 
-  // Get the thread's starter message (original command)
-  const starterMessage = await message.channel.fetchStarterMessage();
+  // Extract original author ID from thread name
+  // Thread name format: "Chat - <userID>"
+  const threadName = message.channel.name;
+  const userIdMatch = threadName.match(/Chat - (\d+)/);
 
-  // Verify the original author
-  // The starter message is the bot's reply to the slash command
-  // We need to track the original author separately
-  // This can be done by:
-  // 1. Storing author ID in thread name/metadata
-  // 2. Checking interaction reply
-  // 3. Using a Map/cache to track thread -> author
+  if (!userIdMatch) {
+    // Not a thread created by our bot
+    return false;
+  }
 
+  const originalAuthorId = userIdMatch[1];
+
+  // Verify the message author matches the original author
   return message.author.id === originalAuthorId;
 }
 ```
+
+**Alternative Approach**: Instead of encoding in the thread name, you could:
+1. Fetch the thread's starter message
+2. Check if it's from the bot
+3. Look for a mention or reference to the original user in that message
+4. This keeps thread names clean but requires an additional API call
 
 ## Conversation History
 
@@ -77,12 +84,33 @@ When a message is received in a thread:
 - Consider implementing cooldown if necessary
 - Handle rate limits gracefully
 
-## Storage Considerations
-For MVP, use in-memory storage:
-- Map<threadId, originalAuthorId>
-- Clear on bot restart (acceptable for demo)
+## On-Demand Lookup Strategy
 
-For production:
-- Consider persistent storage (database)
-- Track conversation history
-- Enable conversation resumption after bot restart
+### No State Storage Required
+The bot uses Discord's native data structures to verify message eligibility:
+
+**Approach 1: Thread Name Encoding (Recommended for simplicity)**
+- Encode user ID in thread name: `Chat - <userID>`
+- Extract user ID via regex when validating messages
+- No additional API calls needed
+- Survives bot restarts automatically
+
+**Approach 2: Starter Message Lookup (Cleaner UX)**
+- Fetch the thread's starter message
+- Include user mention or ID in the starter message content
+- Parse the message to extract original author
+- Requires one additional API call per message validation
+- Keeps thread names user-friendly
+
+**Approach 3: Message History Scan**
+- When validating, fetch the first few messages in the thread
+- The oldest message from a non-bot user is the original author
+- More resilient but requires fetching message history
+- Best for threads where name encoding isn't desirable
+
+### Benefits of On-Demand Lookup
+- No in-memory state to manage
+- Bot restarts don't lose thread ownership data
+- Scales without memory concerns
+- Thread information is self-contained
+- No synchronization issues across instances

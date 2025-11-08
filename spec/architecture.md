@@ -101,8 +101,8 @@ Response in Thread
 6. Chat service calls OpenAI-compatible API
 7. Bot receives response
 8. Bot edits deferred reply with response
-9. Bot creates thread from reply
-10. Bot stores thread ID → author ID mapping
+9. Bot creates thread from reply with user ID in thread name
+10. Thread name format: `Chat - <userID>` for on-demand lookup
 
 ### Thread Conversation
 1. User sends message in thread
@@ -122,22 +122,29 @@ Response in Thread
 
 ## State Management
 
-### In-Memory Storage
+### On-Demand Lookup (No Persistent State)
+The bot uses Discord's native data structures to determine thread ownership:
+
 ```typescript
-// Thread ID to original author ID mapping
-const threadOwners = new Map<string, string>();
+// Extract original author ID from thread name
+function getThreadAuthorId(thread: ThreadChannel): string | null {
+  const match = thread.name.match(/Chat - (\d+)/);
+  return match ? match[1] : null;
+}
 
-// Store when thread is created
-threadOwners.set(threadId, userId);
-
-// Retrieve when message is received
-const ownerId = threadOwners.get(threadId);
+// When message is received
+const authorId = getThreadAuthorId(message.channel);
+if (authorId === message.author.id) {
+  // Process the message
+}
 ```
 
-### Limitations
-- State lost on bot restart
-- Not suitable for production scale
-- Consider Redis or database for production
+### Benefits
+- No state to manage or persist
+- Survives bot restarts automatically
+- No memory overhead
+- Thread information is self-contained
+- Scales horizontally without shared state
 
 ## Error Handling Strategy
 
