@@ -3,18 +3,43 @@ import type { ChatMessage } from '../types/chat.js';
 
 export class ThreadService {
   /**
-   * Extract the original author ID from a thread name
-   * Thread name format: "Chat - <userID>"
+   * Extract the original author ID from the thread's starter message
+   * Uses the interaction metadata from the starter message to get the user who created the thread
    */
-  getThreadAuthorId(thread: ThreadChannel): string | null {
-    const match = thread.name.match(/Chat - (\d+)/);
-    return match?.[1] ?? null;
+  async getThreadAuthorId(thread: ThreadChannel): Promise<string | null> {
+    try {
+      // Fetch the starter message (the bot's message that started the thread)
+      const starterMessage = await thread.fetchStarterMessage();
+
+      if (!starterMessage) {
+        console.log(`[ThreadService] No starter message found for thread ${thread.id}`);
+        return null;
+      }
+
+      // Get the user from the interaction metadata
+      // The starter message is a reply to an interaction, so it has interactionMetadata
+      const interactionUser =
+        starterMessage.interactionMetadata?.user || starterMessage.interaction?.user;
+
+      if (!interactionUser) {
+        console.log(`[ThreadService] No interaction metadata found for thread ${thread.id}`);
+        return null;
+      }
+
+      return interactionUser.id;
+    } catch (error) {
+      console.error(
+        `[ThreadService] Error fetching thread author ID for thread ${thread.id}:`,
+        error
+      );
+      return null;
+    }
   }
 
   /**
    * Check if a message should be processed by the bot
    */
-  shouldProcessMessage(message: Message, _botId: string): boolean {
+  async shouldProcessMessage(message: Message, _botId: string): Promise<boolean> {
     // Ignore bot messages
     if (message.author.bot) {
       return false;
@@ -25,8 +50,8 @@ export class ThreadService {
       return false;
     }
 
-    // Extract original author ID from thread name
-    const authorId = this.getThreadAuthorId(message.channel);
+    // Extract original author ID from the thread's starter message
+    const authorId = await this.getThreadAuthorId(message.channel);
 
     if (!authorId) {
       // Not a thread created by our bot
@@ -84,9 +109,11 @@ export class ThreadService {
   }
 
   /**
-   * Generate a thread name from a user ID
+   * Generate a thread name
+   * Note: The user ID is no longer stored in the thread name.
+   * Instead, it's retrieved from the starter message's interaction metadata.
    */
-  generateThreadName(userId: string): string {
-    return `Chat - ${userId}`;
+  generateThreadName(): string {
+    return 'Chat';
   }
 }

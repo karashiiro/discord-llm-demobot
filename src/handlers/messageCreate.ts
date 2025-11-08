@@ -11,7 +11,7 @@ export async function handleMessageCreate(
 ): Promise<void> {
   try {
     // Check if this message should be processed
-    if (!threadService.shouldProcessMessage(message, client.user?.id || '')) {
+    if (!(await threadService.shouldProcessMessage(message, client.user?.id || ''))) {
       return;
     }
 
