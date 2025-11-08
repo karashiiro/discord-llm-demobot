@@ -20,7 +20,7 @@ export class ChatService {
     this.temperature = config.chat.temperature;
     this.maxTokens = config.chat.maxTokens;
     this.systemPrompt =
-      'You are a helpful AI assistant in a Discord chat. Keep your responses concise and conversational. Aim for brief, friendly replies that fit well in a chat environment. Avoid overly long or verbose responses.';
+      'You are a helpful AI assistant in a Discord chat. CRITICAL: Discord messages have a strict 2000 character limit. You MUST keep your responses under 2000 characters total. Be concise, conversational, and friendly. If a response would exceed 2000 characters, summarize or break it into key points instead.';
   }
 
   async sendChatRequest(messages: ChatMessage[]): Promise<string> {
@@ -50,7 +50,6 @@ export class ChatService {
           ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
       });
 
       if (!response.ok) {
