@@ -11,6 +11,7 @@ export class ChatService {
   private readonly model: string;
   private readonly temperature: number;
   private readonly maxTokens: number;
+  private readonly systemPrompt: string;
 
   constructor() {
     this.endpointUrl = config.chat.endpointUrl;
@@ -18,14 +19,22 @@ export class ChatService {
     this.model = config.chat.model;
     this.temperature = config.chat.temperature;
     this.maxTokens = config.chat.maxTokens;
+    this.systemPrompt =
+      'You are a helpful AI assistant in a Discord chat. Keep your responses concise and conversational. Aim for brief, friendly replies that fit well in a chat environment. Avoid overly long or verbose responses.';
   }
 
   async sendChatRequest(messages: ChatMessage[]): Promise<string> {
     const url = `${this.endpointUrl}/v1/chat/completions`;
 
+    // Prepend system prompt if not already present
+    const messagesWithSystem: ChatMessage[] =
+      messages[0]?.role === 'system'
+        ? messages
+        : [{ role: 'system', content: this.systemPrompt }, ...messages];
+
     const requestBody: ChatCompletionRequest = {
       model: this.model,
-      messages,
+      messages: messagesWithSystem,
       temperature: this.temperature,
       max_tokens: this.maxTokens,
     };

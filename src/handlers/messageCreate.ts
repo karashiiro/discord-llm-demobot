@@ -1,6 +1,7 @@
 import { Message, Client } from 'discord.js';
 import { ChatService } from '../services/chatService.js';
 import { ThreadService } from '../services/threadService.js';
+import { chunkMessage } from '../utils/messageChunker.js';
 
 export async function handleMessageCreate(
   message: Message,
@@ -37,8 +38,14 @@ export async function handleMessageCreate(
     // Get AI response
     const response = await chatService.sendChatRequest(conversationHistory);
 
-    // Send response in the thread
-    await thread.send(response);
+    // Chunk the response if it's too long
+    const chunks = chunkMessage(response);
+    console.log(`[MessageHandler] Response split into ${chunks.length} chunk(s)`);
+
+    // Send all chunks in the thread
+    for (const chunk of chunks) {
+      await thread.send(chunk);
+    }
 
     console.log(`[MessageHandler] Sent response in thread ${thread.id}`);
   } catch (error) {
