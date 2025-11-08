@@ -45,7 +45,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   try {
-    await command.execute(interaction, chatService, threadService);
+    await command.execute(interaction, threadService);
   } catch (error) {
     console.error('Error executing command:', error);
     const errorMessage = 'There was an error while executing this command!';
