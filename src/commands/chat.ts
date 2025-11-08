@@ -21,7 +21,7 @@ export async function execute(
     });
 
     // Create a thread from the reply
-    const threadName = threadService.generateThreadName(userId);
+    const threadName = threadService.generateThreadName();
 
     console.log(`[ChatCommand] Creating thread: ${threadName}`);
 
