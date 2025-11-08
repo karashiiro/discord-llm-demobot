@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { ChatService } from '../services/chatService.js';
 import { ThreadService } from '../services/threadService.js';
+import { chunkMessage } from '../utils/messageChunker.js';
 
 export const data = new SlashCommandBuilder()
   .setName('chat')
@@ -31,8 +32,12 @@ export async function execute(
       { role: 'user', content: userMessage },
     ]);
 
-    // Edit the deferred reply with the AI response
-    const reply = await interaction.editReply(response);
+    // Chunk the response if it's too long
+    const chunks = chunkMessage(response);
+    console.log(`[ChatCommand] Response split into ${chunks.length} chunk(s)`);
+
+    // Edit the deferred reply with the first chunk
+    const reply = await interaction.editReply(chunks[0]!);
 
     // Create a thread from the reply
     const threadName = threadService.generateThreadName(userId);
@@ -45,6 +50,11 @@ export async function execute(
     });
 
     console.log(`[ChatCommand] Thread created: ${thread.id}`);
+
+    // Send remaining chunks in the thread
+    for (let i = 1; i < chunks.length; i++) {
+      await thread.send(chunks[i]!);
+    }
   } catch (error) {
     console.error('[ChatCommand] Error:', error);
 
