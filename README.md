@@ -16,6 +16,8 @@ A Discord bot that provides AI chat functionality through a `/chat` slash comman
 - Node.js 18.0.0 or higher
 - A Discord Bot Token ([Create one here](https://discord.com/developers/applications))
 - An OpenAI-compatible API endpoint (OpenAI, Azure OpenAI, local LLM server, etc.)
+  - **For development/testing**: Use the included mock server (no API key required)
+  - **For production**: Use a real OpenAI-compatible endpoint
 
 ## Setup
 
@@ -72,11 +74,36 @@ npm start
 
 ## Development
 
+### Using the Mock Server
+
+For development and testing without API costs, use the included mock server:
+
+1. **Start the mock server** (in one terminal):
+   ```bash
+   npm run mock-server
+   ```
+
+2. **Configure your `.env`** to use the mock server:
+   ```env
+   CHAT_ENDPOINT_URL=http://localhost:3001
+   CHAT_API_KEY=mock-api-key
+   ```
+
+3. **Start the bot** (in another terminal):
+   ```bash
+   npm start
+   ```
+
+The mock server will echo your messages back with a prefix, allowing you to test the full bot workflow without making real API calls.
+
+For more details, see [mock-server/README.md](mock-server/README.md).
+
 ### Available Scripts
 
 - `npm run build` - Compile TypeScript to JavaScript
 - `npm run dev` - Watch mode for development
 - `npm start` - Start the bot
+- `npm run mock-server` - Start the mock OpenAI server for testing
 - `npm run lint` - Check code with ESLint
 - `npm run lint:fix` - Fix linting issues automatically
 - `npm run format` - Format code with Prettier
@@ -97,6 +124,9 @@ discord-llm-demobot/
 │   ├── services/        # Business logic
 │   ├── types/           # Type definitions
 │   └── utils/           # Utilities
+├── mock-server/         # Mock OpenAI server for development
+│   ├── server.js        # Express server
+│   └── README.md        # Mock server documentation
 ├── dist/                # Compiled JavaScript output
 └── package.json         # Project metadata
 ```
