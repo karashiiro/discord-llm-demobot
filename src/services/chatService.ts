@@ -19,7 +19,14 @@ export class ChatService {
       'Be concise, conversational, and friendly, responding in at most a couple of sentences.';
   }
 
-  async sendChatRequest(messages: ChatMessage[]): Promise<string> {
+  async sendChatRequest(
+    messages: ChatMessage[],
+    onStatusUpdate?: (status: {
+      type: 'thinking' | 'retrying';
+      attempt?: number;
+      maxAttempts?: number;
+    }) => Promise<void>
+  ): Promise<string> {
     const url = `${this.endpointUrl}/v1/chat/completions`;
     const maxRetries = 9; // 10 total requests (1 initial + 9 retries)
     const timeoutMs = 30000; // 30 seconds
@@ -40,11 +47,20 @@ export class ChatService {
     console.log(`[ChatService] Sending request to ${url}`);
     console.log(`[ChatService] Messages: ${messages.length} messages`);
 
+    // Notify thinking status
+    if (onStatusUpdate) {
+      await onStatusUpdate({ type: 'thinking' });
+    }
+
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       if (attempt > 0) {
         console.log(`[ChatService] Retry attempt ${attempt}/${maxRetries}`);
+        // Notify retry status
+        if (onStatusUpdate) {
+          await onStatusUpdate({ type: 'retrying', attempt, maxAttempts: maxRetries + 1 });
+        }
       }
 
       try {
