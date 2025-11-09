@@ -111,4 +111,34 @@ export class ChatService {
       `Failed to get chat response after ${maxRetries + 1} attempts: ${lastError?.message}`
     );
   }
+
+  /**
+   * Generate a thread name from a user message
+   * Uses the chat model with a special prompt to create a concise thread name
+   */
+  async generateThreadName(userMessage: string): Promise<string> {
+    try {
+      const threadNamePrompt =
+        'Based on the following user message, generate a concise thread name that summarizes the topic. ' +
+        'The thread name must be no more than 50 characters. ' +
+        'Respond with ONLY the thread name, no quotes, no explanations.';
+
+      const messages: ChatMessage[] = [
+        { role: 'system', content: threadNamePrompt },
+        { role: 'user', content: userMessage },
+      ];
+
+      const response = await this.sendChatRequest(messages);
+
+      // Trim and limit to 50 characters
+      const threadName = response.trim().substring(0, 50);
+
+      console.log(`[ChatService] Generated thread name: ${threadName}`);
+
+      return threadName || 'Chat'; // Fallback to 'Chat' if empty
+    } catch (error) {
+      console.error('[ChatService] Error generating thread name:', error);
+      return 'Chat'; // Fallback to 'Chat' on error
+    }
+  }
 }

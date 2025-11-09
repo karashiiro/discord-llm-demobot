@@ -26,6 +26,33 @@ export async function handleMessageCreate(
 
     const thread = message.channel;
 
+    // Check if this is the first user message (to generate thread name)
+    // We'll count user messages (excluding bot messages and the starter message)
+    const messages = await thread.messages.fetch({ limit: 10 });
+    const userMessages = Array.from(messages.values()).filter(
+      (msg: Message) => !msg.author.bot && msg.content
+    );
+
+    // If this is the first user message, generate a thread name asynchronously
+    if (userMessages.length === 1 && userMessages[0]?.id === message.id) {
+      console.log(`[MessageHandler] First user message detected, generating thread name`);
+
+      // Generate thread name asynchronously (don't await - let it run in background)
+      chatService
+        .generateThreadName(message.content)
+        .then(async (threadName) => {
+          try {
+            await thread.setName(threadName);
+            console.log(`[MessageHandler] Thread name updated to: ${threadName}`);
+          } catch (error) {
+            console.error('[MessageHandler] Failed to update thread name:', error);
+          }
+        })
+        .catch((error) => {
+          console.error('[MessageHandler] Error in thread name generation:', error);
+        });
+    }
+
     // Send typing indicator
     await thread.sendTyping();
 
