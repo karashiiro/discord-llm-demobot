@@ -21,6 +21,8 @@ export class ChatService {
 
   async sendChatRequest(messages: ChatMessage[]): Promise<string> {
     const url = `${this.endpointUrl}/v1/chat/completions`;
+    const maxRetries = 9; // 10 total requests (1 initial + 9 retries)
+    const timeoutMs = 30000; // 30 seconds
 
     // Prepend system prompt if not already present
     const messagesWithSystem: ChatMessage[] =
@@ -38,41 +40,71 @@ export class ChatService {
     console.log(`[ChatService] Sending request to ${url}`);
     console.log(`[ChatService] Messages: ${messages.length} messages`);
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
-        },
-        body: JSON.stringify(requestBody),
-      });
+    let lastError: Error | undefined;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Chat API error: ${response.status} ${response.statusText} - ${errorText}`);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        console.log(`[ChatService] Retry attempt ${attempt}/${maxRetries}`);
       }
 
-      const data = (await response.json()) as ChatCompletionResponse;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('No choices in chat completion response');
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Chat API error: ${response.status} ${response.statusText} - ${errorText}`);
+          }
+
+          const data = (await response.json()) as ChatCompletionResponse;
+
+          if (!data.choices || data.choices.length === 0) {
+            throw new Error('No choices in chat completion response');
+          }
+
+          const content = data.choices[0]?.message.content;
+          if (!content) {
+            throw new Error('No content in chat completion response');
+          }
+
+          console.log(`[ChatService] Received response: ${content.substring(0, 100)}...`);
+
+          return content;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error(`[ChatService] Request timeout after ${timeoutMs}ms`);
+        } else {
+          console.error(`[ChatService] Error:`, lastError.message);
+        }
+
+        // If this was the last attempt, throw the error
+        if (attempt === maxRetries) {
+          break;
+        }
+
+        // Otherwise, continue to next retry attempt
       }
-
-      const content = data.choices[0]?.message.content;
-      if (!content) {
-        throw new Error('No content in chat completion response');
-      }
-
-      console.log(`[ChatService] Received response: ${content.substring(0, 100)}...`);
-
-      return content;
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(`[ChatService] Error:`, error.message);
-        throw new Error(`Failed to get chat response: ${error.message}`);
-      }
-      throw error;
     }
+
+    // All retries exhausted
+    throw new Error(`Failed to get chat response after ${maxRetries + 1} attempts: ${lastError?.message}`);
   }
 }
