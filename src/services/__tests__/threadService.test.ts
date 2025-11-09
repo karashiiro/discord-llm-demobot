@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { ThreadService } from '../threadService.js';
-import { Message, ThreadChannel, User, InteractionMetadata } from 'discord.js';
+import { Message, ThreadChannel, User } from 'discord.js';
 
 /**
  * Tests for ThreadService - Thread-based User Isolation
@@ -31,7 +31,7 @@ describe('ThreadService - Thread-based User Isolation', () => {
 
     const mockInteractionMetadata = {
       user: mockInteractionUser,
-    } as unknown as InteractionMetadata;
+    };
 
     const mockStarterMessage = {
       interactionMetadata: mockInteractionMetadata,
