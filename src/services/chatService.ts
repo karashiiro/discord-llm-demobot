@@ -66,7 +66,9 @@ export class ChatService {
 
           if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Chat API error: ${response.status} ${response.statusText} - ${errorText}`);
+            throw new Error(
+              `Chat API error: ${response.status} ${response.statusText} - ${errorText}`
+            );
           }
 
           const data = (await response.json()) as ChatCompletionResponse;
@@ -105,6 +107,8 @@ export class ChatService {
     }
 
     // All retries exhausted
-    throw new Error(`Failed to get chat response after ${maxRetries + 1} attempts: ${lastError?.message}`);
+    throw new Error(
+      `Failed to get chat response after ${maxRetries + 1} attempts: ${lastError?.message}`
+    );
   }
 }
