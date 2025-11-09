@@ -17,6 +17,28 @@ describe('ChatService', () => {
   let chatService: ChatService;
   let originalFetch: typeof global.fetch;
 
+  /**
+   * Helper function to create a complete ChatCompletionResponse
+   */
+  function createMockResponse(content: string): ChatCompletionResponse {
+    return {
+      id: 'chatcmpl-123',
+      object: 'chat.completion',
+      created: Date.now(),
+      model: 'gpt-3.5-turbo',
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content,
+          },
+          finish_reason: 'stop',
+          index: 0,
+        },
+      ],
+    };
+  }
+
   beforeEach(() => {
 
     // Store original fetch
@@ -35,18 +57,7 @@ describe('ChatService', () => {
   describe('sendChatRequest - Successful Requests', () => {
     it('should successfully send a chat request and return the response', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Hello! How can I help you?',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Hello! How can I help you?');
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -67,18 +78,7 @@ describe('ChatService', () => {
 
     it('should prepend system prompt if not already present', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Response',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Response');
 
       let capturedBody: any;
       global.fetch = jest.fn(async (_url, options) => {
@@ -105,18 +105,7 @@ describe('ChatService', () => {
 
     it('should NOT prepend system prompt if already present', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Response',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Response');
 
       let capturedBody: any;
       global.fetch = jest.fn(async (_url, options) => {
@@ -144,18 +133,7 @@ describe('ChatService', () => {
 
     it('should send correct request body with model, temperature, and max_tokens', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Response',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Response');
 
       let capturedBody: any;
       global.fetch = jest.fn(async (_url, options) => {
@@ -181,18 +159,7 @@ describe('ChatService', () => {
 
     it('should include Authorization header with API key', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Response',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Response');
 
       let capturedHeaders: any;
       global.fetch = jest.fn(async (_url, options) => {
@@ -217,18 +184,7 @@ describe('ChatService', () => {
 
     it('should call thinking status callback at the start', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Response',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Response');
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -238,7 +194,7 @@ describe('ChatService', () => {
       })) as any;
 
       const messages: ChatMessage[] = [{ role: 'user', content: 'Hello' }];
-      const statusCallback = jest.fn(async () => {});
+      const statusCallback = jest.fn<(status: any) => Promise<void>>(async () => {});
 
       // Act
       await chatService.sendChatRequest(messages, statusCallback);
@@ -252,6 +208,10 @@ describe('ChatService', () => {
     it('should throw error when response has no choices', async () => {
       // Arrange
       const mockResponse: ChatCompletionResponse = {
+        id: 'chatcmpl-123',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'gpt-3.5-turbo',
         choices: [],
       };
 
@@ -272,18 +232,8 @@ describe('ChatService', () => {
 
     it('should throw error when response has no content', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: '',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('');
+      mockResponse.choices[0]!.message.content = '';
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -370,18 +320,7 @@ describe('ChatService', () => {
 
     it('should succeed on retry after initial failures', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Success on retry',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Success on retry');
 
       let attemptCount = 0;
       global.fetch = jest.fn(async () => {
@@ -409,18 +348,7 @@ describe('ChatService', () => {
 
     it('should call retry status callback on failures with error details', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Success',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Success');
 
       let attemptCount = 0;
       global.fetch = jest.fn(async () => {
@@ -437,7 +365,7 @@ describe('ChatService', () => {
       }) as any;
 
       const messages: ChatMessage[] = [{ role: 'user', content: 'Hello' }];
-      const statusCallback = jest.fn(async () => {});
+      const statusCallback = jest.fn<(status: any) => Promise<void>>(async () => {});
 
       // Act
       await chatService.sendChatRequest(messages, statusCallback);
@@ -460,7 +388,7 @@ describe('ChatService', () => {
       }) as any;
 
       const messages: ChatMessage[] = [{ role: 'user', content: 'Hello' }];
-      const statusCallback = jest.fn(async () => {});
+      const statusCallback = jest.fn<(status: any) => Promise<void>>(async () => {});
 
       // Act & Assert
       await expect(chatService.sendChatRequest(messages, statusCallback)).rejects.toThrow();
@@ -475,18 +403,7 @@ describe('ChatService', () => {
       // Arrange
       jest.useFakeTimers();
 
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Success',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Success');
 
       let attemptCount = 0;
       global.fetch = jest.fn(async (_url, options) => {
@@ -534,18 +451,7 @@ describe('ChatService', () => {
       // Arrange
       jest.useFakeTimers();
 
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Success',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Success');
 
       let attemptCount = 0;
       global.fetch = jest.fn(async (_url, options) => {
@@ -569,7 +475,7 @@ describe('ChatService', () => {
       }) as any;
 
       const messages: ChatMessage[] = [{ role: 'user', content: 'Hello' }];
-      const statusCallback = jest.fn(async () => {});
+      const statusCallback = jest.fn<(status: any) => Promise<void>>(async () => {});
 
       // Act
       const resultPromise = chatService.sendChatRequest(messages, statusCallback);
@@ -591,18 +497,7 @@ describe('ChatService', () => {
   describe('generateThreadName', () => {
     it('should generate a thread name from user message', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Python Tutorial Discussion',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Python Tutorial Discussion');
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -621,18 +516,7 @@ describe('ChatService', () => {
     it('should truncate thread name to 50 characters', async () => {
       // Arrange
       const longName = 'This is a very long thread name that exceeds fifty characters in total length';
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: longName,
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse(longName);
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -651,18 +535,7 @@ describe('ChatService', () => {
 
     it('should trim whitespace from thread name', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: '  JavaScript Help  ',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('  JavaScript Help  ');
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -680,18 +553,8 @@ describe('ChatService', () => {
 
     it('should fallback to "Chat" when API returns empty response', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: '',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('');
+      mockResponse.choices[0]!.message.content = '';
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -709,18 +572,7 @@ describe('ChatService', () => {
 
     it('should fallback to "Chat" when API returns only whitespace', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: '   ',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('   ');
 
       global.fetch = jest.fn(async () => ({
         ok: true,
@@ -751,18 +603,7 @@ describe('ChatService', () => {
 
     it('should use correct prompt for thread name generation', async () => {
       // Arrange
-      const mockResponse: ChatCompletionResponse = {
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Thread Name',
-            },
-            finish_reason: 'stop',
-            index: 0,
-          },
-        ],
-      };
+      const mockResponse = createMockResponse('Thread Name');
 
       let capturedBody: any;
       global.fetch = jest.fn(async (_url, options) => {
