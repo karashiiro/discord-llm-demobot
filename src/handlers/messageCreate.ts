@@ -53,22 +53,37 @@ export async function handleMessageCreate(
         });
     }
 
-    // Send typing indicator
-    await thread.sendTyping();
-
     // Build conversation history
     const conversationHistory = await threadService.buildConversationHistory(thread, client);
 
-    // Get AI response
-    const response = await chatService.sendChatRequest(conversationHistory);
+    // Send initial status message
+    let statusMessage = await thread.send('_Thinking..._');
+
+    // Get AI response with status updates
+    const response = await chatService.sendChatRequest(conversationHistory, async (status) => {
+      try {
+        if (status.type === 'retrying' && status.attempt && status.maxAttempts) {
+          await statusMessage.edit(
+            `_Error, retrying (${status.attempt}/${status.maxAttempts})..._`
+          );
+        }
+      } catch (error) {
+        console.error('[MessageHandler] Failed to update status message:', error);
+      }
+    });
 
     // Chunk the response if it's too long
     const chunks = chunkMessage(response);
     console.log(`[MessageHandler] Response split into ${chunks.length} chunk(s)`);
 
-    // Send all chunks in the thread
-    for (const chunk of chunks) {
-      await thread.send(chunk);
+    // Edit the status message with the first chunk of the response
+    if (chunks.length > 0) {
+      await statusMessage.edit(chunks[0] || '');
+    }
+
+    // Send remaining chunks as new messages
+    for (let i = 1; i < chunks.length; i++) {
+      await thread.send(chunks[i] || '');
     }
 
     console.log(`[MessageHandler] Sent response in thread ${thread.id}`);
