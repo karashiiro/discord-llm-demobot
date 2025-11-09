@@ -45,6 +45,11 @@ export class ThreadService {
       return false;
     }
 
+    // Ignore system messages (like thread name changes) and messages without content
+    if (message.system || !message.content) {
+      return false;
+    }
+
     // Check if we're in a thread
     if (!message.channel.isThread()) {
       return false;
