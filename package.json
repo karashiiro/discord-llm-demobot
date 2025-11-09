@@ -8,6 +8,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -32,7 +35,9 @@
     "dotenv": "^16.4.7"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
     "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.10.1",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
@@ -40,7 +45,9 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "express": "^4.21.2",
+    "jest": "^30.2.0",
     "prettier": "^3.3.3",
+    "ts-jest": "^29.4.5",
     "typescript": "^5.7.2"
   },
   "engines": {
