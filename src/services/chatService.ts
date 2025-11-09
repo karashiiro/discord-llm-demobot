@@ -25,6 +25,7 @@ export class ChatService {
       type: 'thinking' | 'retrying';
       attempt?: number;
       maxAttempts?: number;
+      error?: string;
     }) => Promise<void>
   ): Promise<string> {
     const url = `${this.endpointUrl}/v1/chat/completions`;
@@ -57,10 +58,6 @@ export class ChatService {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       if (attempt > 0) {
         console.log(`[ChatService] Retry attempt ${attempt}/${maxRetries}`);
-        // Notify retry status
-        if (onStatusUpdate) {
-          await onStatusUpdate({ type: 'retrying', attempt, maxAttempts: maxRetries + 1 });
-        }
       }
 
       try {
@@ -107,10 +104,13 @@ export class ChatService {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
+        let errorMessage: string;
         if (error instanceof Error && error.name === 'AbortError') {
-          console.error(`[ChatService] Request timeout after ${timeoutMs}ms`);
+          errorMessage = `Request timeout after ${timeoutMs}ms`;
+          console.error(`[ChatService] ${errorMessage}`);
         } else {
-          console.error(`[ChatService] Error:`, lastError.message);
+          errorMessage = lastError.message;
+          console.error(`[ChatService] Error:`, errorMessage);
         }
 
         // If this was the last attempt, throw the error
@@ -118,7 +118,17 @@ export class ChatService {
           break;
         }
 
-        // Otherwise, continue to next retry attempt
+        // Notify retry status with error information (only if not the last attempt)
+        if (onStatusUpdate && attempt < maxRetries) {
+          await onStatusUpdate({
+            type: 'retrying',
+            attempt: attempt + 1,
+            maxAttempts: maxRetries + 1,
+            error: errorMessage,
+          });
+        }
+
+        // Continue to next retry attempt
       }
     }
 

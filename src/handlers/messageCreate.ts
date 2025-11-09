@@ -63,9 +63,11 @@ export async function handleMessageCreate(
     const response = await chatService.sendChatRequest(conversationHistory, async (status) => {
       try {
         if (status.type === 'retrying' && status.attempt && status.maxAttempts) {
-          await statusMessage.edit(
-            `_Error, retrying (${status.attempt}/${status.maxAttempts})..._`
-          );
+          let statusText = `_Error, retrying (${status.attempt}/${status.maxAttempts})..._`;
+          if (status.error) {
+            statusText += `\n_${status.error}_`;
+          }
+          await statusMessage.edit(statusText);
         }
       } catch (error) {
         console.error('[MessageHandler] Failed to update status message:', error);
