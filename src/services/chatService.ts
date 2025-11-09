@@ -16,7 +16,7 @@ export class ChatService {
     this.temperature = config.chat.temperature;
     this.maxTokens = config.chat.maxTokens;
     this.systemPrompt =
-      'You are a helpful AI assistant in a Discord chat. Be concise, conversational, and friendly, responding in at most a couple of sentences.';
+      'Be concise, conversational, and friendly, responding in at most a couple of sentences.';
   }
 
   async sendChatRequest(messages: ChatMessage[]): Promise<string> {
