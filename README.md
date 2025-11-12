@@ -19,6 +19,12 @@ A Discord bot that provides AI chat functionality through a `/chat` slash comman
   - **For development/testing**: Use the included mock server (no API key required)
   - **For production**: Use a real OpenAI-compatible endpoint
 
+## Deployment
+
+### NixOS
+
+For NixOS users, see [NIXOS_DEPLOYMENT.md](./NIXOS_DEPLOYMENT.md) for a complete guide on deploying this bot as a systemd service with proper secrets management.
+
 ## Setup
 
 ### 1. Clone and Install Dependencies
