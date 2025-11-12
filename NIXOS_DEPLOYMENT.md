@@ -10,7 +10,112 @@ The bot runs as a systemd service with:
 - Security hardening and resource limits
 - Automatic Discord command deployment
 
-## Setup
+## Setup (Traditional NixOS)
+
+If you have `/etc/nixos/configuration.nix` (no flakes), follow these steps:
+
+### 1. Update Your Configuration
+
+In your `/etc/nixos/configuration.nix`, add:
+
+```nix
+{ config, pkgs, ... }:
+
+let
+  discord-llm-demobot-src = pkgs.fetchFromGitHub {
+    owner = "karashiiro";
+    repo = "discord-llm-demobot";
+    rev = "main";  # or a specific commit hash
+    sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";  # see note below
+  };
+
+  discord-llm-demobot-pkg = pkgs.buildNpmPackage {
+    pname = "discord-llm-demobot";
+    version = "1.0.0";
+    src = discord-llm-demobot-src;
+
+    npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";  # see note below
+
+    nativeBuildInputs = [ pkgs.nodejs_20 ];
+    buildPhase = "npm run build";
+    installPhase = ''
+      mkdir -p $out/{lib/discord-llm-demobot,bin}
+      cp -r dist node_modules package.json $out/lib/discord-llm-demobot/
+
+      cat > $out/bin/discord-llm-demobot <<EOF
+      #!${pkgs.bash}/bin/bash
+      exec ${pkgs.nodejs_20}/bin/node $out/lib/discord-llm-demobot/dist/index.js "\$@"
+      EOF
+      chmod +x $out/bin/discord-llm-demobot
+
+      cat > $out/bin/discord-llm-demobot-deploy-commands <<EOF
+      #!${pkgs.bash}/bin/bash
+      exec ${pkgs.nodejs_20}/bin/node $out/lib/discord-llm-demobot/dist/deployCommands.js "\$@"
+      EOF
+      chmod +x $out/bin/discord-llm-demobot-deploy-commands
+    '';
+  };
+in {
+  imports = [
+    ./hardware-configuration.nix
+    "${discord-llm-demobot-src}/nixos-module.nix"
+  ];
+
+  # ... your other config ...
+
+  # Configure the bot
+  services.discord-llm-demobot = {
+    enable = true;
+    package = discord-llm-demobot-pkg;
+
+    # Path to your secrets file
+    environmentFile = "/var/lib/discord-llm-demobot/secrets.env";
+
+    # Your Discord app's client ID (not secret - safe to put here)
+    discord.clientId = "YOUR_CLIENT_ID_HERE";
+
+    # Chat API settings
+    chat = {
+      endpointUrl = "https://api.openai.com";
+      model = "gpt-3.5-turbo";
+    };
+  };
+}
+```
+
+**Note on hashes**: The two `sha256` values need to be filled in:
+- First hash: Run `nix-prefetch-url --unpack https://github.com/karashiiro/discord-llm-demobot/archive/main.tar.gz`
+- Second hash (npmDepsHash): Try to build, it will fail and show you the correct hash
+
+### 2. Create a Secrets File
+
+Create `/var/lib/discord-llm-demobot/secrets.env` with your tokens:
+
+```bash
+# As root
+sudo mkdir -p /var/lib/discord-llm-demobot
+sudo tee /var/lib/discord-llm-demobot/secrets.env > /dev/null <<EOF
+DISCORD_TOKEN=your_discord_bot_token_here
+CHAT_API_KEY=your_openai_api_key_here
+EOF
+
+# Make it readable only by root (will be accessed by the bot service user)
+sudo chmod 600 /var/lib/discord-llm-demobot/secrets.env
+```
+
+**Important**: Never commit this file to git!
+
+### 3. Build and Deploy
+
+```bash
+sudo nixos-rebuild switch
+```
+
+That's it! The bot should now be running.
+
+## Setup (Flakes-based NixOS)
+
+If you use flakes (have `/etc/nixos/flake.nix`), follow this approach:
 
 ### 1. Add to Your System Flake
 
@@ -44,41 +149,17 @@ In your system's `flake.nix`, add the bot as an input:
 }
 ```
 
-### 2. Create a Secrets File
+### 2. Configure and Deploy
 
-Create `/var/lib/discord-llm-demobot/secrets.env` with your tokens:
-
-```bash
-# As root
-sudo mkdir -p /var/lib/discord-llm-demobot
-sudo tee /var/lib/discord-llm-demobot/secrets.env > /dev/null <<EOF
-DISCORD_TOKEN=your_discord_bot_token_here
-CHAT_API_KEY=your_openai_api_key_here
-EOF
-
-# Make it readable only by root (will be accessed by the bot service user)
-sudo chmod 600 /var/lib/discord-llm-demobot/secrets.env
-```
-
-**Important**: Never commit this file to git!
-
-### 3. Configure the Service
-
-In your `configuration.nix`:
+Create the secrets file (same as step 3 above), then configure in `configuration.nix`:
 
 ```nix
 { config, pkgs, ... }:
 {
   services.discord-llm-demobot = {
     enable = true;
-
-    # Path to your secrets file
     environmentFile = "/var/lib/discord-llm-demobot/secrets.env";
-
-    # Your Discord app's client ID (not secret - safe to put here)
     discord.clientId = "YOUR_CLIENT_ID_HERE";
-
-    # Chat API settings
     chat = {
       endpointUrl = "https://api.openai.com";
       model = "gpt-3.5-turbo";
@@ -87,13 +168,10 @@ In your `configuration.nix`:
 }
 ```
 
-### 4. Deploy
-
+Then rebuild:
 ```bash
 sudo nixos-rebuild switch
 ```
-
-That's it! The bot should now be running.
 
 ## Getting Discord Credentials
 
@@ -109,7 +187,7 @@ That's it! The bot should now be running.
    - OAuth2 → URL Generator
    - Scopes: `bot`, `applications.commands`
    - Permissions: Send Messages, Create Public Threads, Send Messages in Threads
-   - Use generated URL to invite to your server
+   - Use generated URL to invite the bot to your server
 
 ## Checking Status
 
