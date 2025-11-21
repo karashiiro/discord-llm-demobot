@@ -5,6 +5,7 @@ This guide shows how to deploy the Discord LLM Demo Bot as a systemd service on 
 ## Overview
 
 The bot runs as a systemd service with:
+
 - Secrets stored outside your Nix configuration (using a simple env file)
 - Automatic service restarts on failure
 - Security hardening and resource limits
@@ -84,6 +85,7 @@ in {
 ```
 
 **Note on hashes**: The two `sha256` values need to be filled in:
+
 - First hash: Run `nix-prefetch-url --unpack https://github.com/karashiiro/discord-llm-demobot/archive/main.tar.gz`
 - Second hash (npmDepsHash): Try to build, it will fail and show you the correct hash
 
@@ -97,6 +99,7 @@ sudo mkdir -p /var/lib/discord-llm-demobot
 sudo tee /var/lib/discord-llm-demobot/secrets.env > /dev/null <<EOF
 DISCORD_TOKEN=your_discord_bot_token_here
 CHAT_API_KEY=your_openai_api_key_here
+CHAT_ENDPOINT=your_endpoint_here
 EOF
 
 # Make it readable only by root (will be accessed by the bot service user)
@@ -169,6 +172,7 @@ Create the secrets file (same as step 3 above), then configure in `configuration
 ```
 
 Then rebuild:
+
 ```bash
 sudo nixos-rebuild switch
 ```
@@ -206,17 +210,17 @@ sudo systemctl restart discord-llm-demobot
 
 All options for `services.discord-llm-demobot`:
 
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| `enable` | bool | Yes | - | Enable the service |
-| `environmentFile` | path | Yes | - | Path to secrets file |
-| `discord.clientId` | string | Yes | - | Discord client ID |
-| `chat.endpointUrl` | string | Yes | - | API endpoint URL |
-| `chat.model` | string | No | `"gpt-3.5-turbo"` | Chat model |
-| `chat.temperature` | float | No | `0.7` | Temperature (0.0-2.0) |
-| `chat.maxTokens` | int | No | `1000` | Max tokens per response |
-| `package` | package | No | `pkgs.discord-llm-demobot` | Package to use |
-| `deployCommands` | bool | No | `true` | Auto-deploy slash commands |
+| Option             | Type    | Required | Default                    | Description                |
+| ------------------ | ------- | -------- | -------------------------- | -------------------------- |
+| `enable`           | bool    | Yes      | -                          | Enable the service         |
+| `environmentFile`  | path    | Yes      | -                          | Path to secrets file       |
+| `discord.clientId` | string  | Yes      | -                          | Discord client ID          |
+| `chat.endpointUrl` | string  | Yes      | -                          | API endpoint URL           |
+| `chat.model`       | string  | No       | `"gpt-3.5-turbo"`          | Chat model                 |
+| `chat.temperature` | float   | No       | `0.7`                      | Temperature (0.0-2.0)      |
+| `chat.maxTokens`   | int     | No       | `1000`                     | Max tokens per response    |
+| `package`          | package | No       | `pkgs.discord-llm-demobot` | Package to use             |
+| `deployCommands`   | bool    | No       | `true`                     | Auto-deploy slash commands |
 
 ## First-Time Build (Maintainers)
 
@@ -232,6 +236,7 @@ This will fail and show the correct hash. Update `npmDepsHash` in `flake.nix` wi
 ## Advanced: Alternative Secret Management
 
 For more sophisticated setups, you can use:
+
 - [agenix](https://github.com/ryantm/agenix) - Age-encrypted secrets
 - [sops-nix](https://github.com/Mic92/sops-nix) - SOPS-based secrets
 
@@ -240,17 +245,20 @@ Both work by setting `environmentFile` to their decrypted secret paths. See thei
 ## Troubleshooting
 
 **Service won't start:**
+
 ```bash
 sudo journalctl -u discord-llm-demobot -n 50
 ```
 
 Common issues:
+
 - Missing or incorrect `DISCORD_TOKEN` in secrets file
 - Secrets file not readable (check permissions)
 - Invalid Discord client ID
 - Network connectivity issues
 
 **Commands not showing in Discord:**
+
 - Wait a few minutes (Discord can take time to register commands)
 - Check deploy service logs: `sudo journalctl -u discord-llm-demobot-deploy`
 - Manually redeploy: `sudo systemctl start discord-llm-demobot-deploy`
