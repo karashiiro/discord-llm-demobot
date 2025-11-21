@@ -120,17 +120,13 @@ in {
         ProtectSystem = "strict";
         ProtectHome = true;
         NoNewPrivileges = true;
-        PrivateDevices = true;
-        ProtectKernelTunels = true;
+        ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
         RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
-        RestrictNamespaces = true;
-        LockPersonality = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         RemoveIPC = true;
-        SystemCallFilter = [ "@system-service" "~@privileged" ];
 
         StateDirectory = cfg.stateDirectory;
       };
@@ -170,17 +166,13 @@ in {
         ProtectSystem = "strict";
         ProtectHome = true;
         NoNewPrivileges = true;
-        PrivateDevices = true;
-        ProtectKernelTunels = true;
+        ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
         RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
-        RestrictNamespaces = true;
-        LockPersonality = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         RemoveIPC = true;
-        SystemCallFilter = [ "@system-service" "~@privileged" ];
 
         # Resource limits
         MemoryMax = "512M";
